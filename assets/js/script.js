@@ -2,8 +2,10 @@
 const botonCalcular = document.querySelector("#calcular");
 botonCalcular.addEventListener("click", tomarParametros);
 
+// Declarar variables globales
 let cuotaMensual = 0;
 let totalAPagar = 0;
+let monedaActual = "ARS";
 
 // Cargar los elementos almacenados en el Local Storage al cargar la página
 cargarItemsLocalStorage();
@@ -17,7 +19,7 @@ function tomarParametros() {
     const interesProducto = parseFloat(document.querySelector("#input-interes").value); // Convertir a número
     const interesDecimal = interesProducto / 100;
     totalAPagar = precioProducto + (precioProducto * interesDecimal);
-    cuotaMensual = totalAPagar / cuotasProducto;
+    cuotaMensual = totalAPagar / cuotasProducto; // Calcula cuota mensual
 
     if (!nombreProducto || isNaN(precioProducto) || isNaN(cuotasProducto) || isNaN(interesProducto)) {
         alert("Todos los campos son obligatorios y deben contener valores numéricos válidos");
@@ -55,6 +57,11 @@ function mostrarItemHistorial(item) {
     // Llamar a la función para guardar el elemento en el Local Storage
     guardarItemStorage(item);
 
+    // Calcular cuotaMensual y totalAPagar
+    const interesDecimal = item.interes / 100;
+    const totalAPagar = item.precio + (item.precio * interesDecimal);
+    const cuotaMensual = totalAPagar / item.cuotas;
+
     // Obtener el elemento del DOM que contiene el historial
     const accordion = document.querySelector("#accordionExample");
     const elementoItem = document.createElement("div");
@@ -74,13 +81,13 @@ function mostrarItemHistorial(item) {
         </h2>
         <div id="${`collapse${cantidadItems}`}" class="accordion-collapse collapse" data-bs-parent="#accordionExample">
             <div class="accordion-body">
-                <p><strong>Precio:</strong> $${item.precio}</p>
+                <p><strong>Precio:</strong> $<span class="moneda">${Math.floor(item.precio)}</span></p>
                 <p><strong>Cuotas:</strong> ${item.cuotas}</p>
                 <p><strong>Interés:</strong> ${item.interes}%</p>
-                <p><strong>Valor de la Cuota Mensual:</strong> $${cuotaMensual.toFixed(2)}</p>
-                <p><strong>Total a Pagar:</strong> $${totalAPagar.toFixed(2)}</p>
+                <p><strong>Valor de la Cuota Mensual:</strong> $<span class="moneda">${Math.floor(cuotaMensual)}</span></p>
+                <p><strong>Total a Pagar:</strong> $<span class="moneda">${Math.floor(totalAPagar)}</span></p>
                 <button type="button" class="btn btn-danger eliminar-item" style="margin: auto; display: block;">Eliminar</button>
-            </div>    
+            </div>
         </div>
     </div>`;
 
@@ -94,6 +101,7 @@ function mostrarItemHistorial(item) {
     });
 }
 
+// Función para filtrar elementos en el historial
 function filtrarHistorial() {
     // Obtener el valor del filtro ingresado por el usuario
     const filtroNombre = document.querySelector("#filtro-nombre").value.toLowerCase();
@@ -128,5 +136,48 @@ class Item {
         this.precio = precio;
         this.cuotas = cuotas;
         this.interes = interes;
+    }
+}
+
+// Función asincrónica para obtener el valor del dólar
+function obtenerValorDolar() {
+    return new Promise((resolve, reject) => {
+        fetch("https://dolarapi.com/v1/dolares/blue")
+            .then((response) => response.json())
+            .then((data) => {
+                resolve(data.venta);
+            })
+            .catch((error) => {
+                reject(error);
+            });
+    });
+}
+
+// Agregar un evento change al elemento con id "monedas" para cambiar la moneda
+document.querySelector("#monedas").addEventListener("change", cambiarMoneda);
+
+// Función asincrónica para cambiar la moneda
+async function cambiarMoneda() {
+    try {
+        const valorDolar = await obtenerValorDolar();
+
+        document.querySelectorAll(".moneda").forEach((valor) => {
+            let contenido = parseFloat(valor.textContent); // Convertir a número
+
+            if (monedaActual === "USD") {
+                // Si la moneda actual es USD, convertir a ARS
+                const valorEnARS = contenido * valorDolar;
+                valor.textContent = valorEnARS;
+            } else {
+                // Si la moneda actual es ARS, convertir a USD
+                const valorEnUSD = contenido / valorDolar;
+                valor.textContent = valorEnUSD;
+            }
+        });
+
+        // Cambiar la moneda actual
+        monedaActual = (monedaActual === "ARS") ? "USD" : "ARS";
+    } catch (error) {
+        console.error("Error al obtener el valor del dólar: " + error);
     }
 }

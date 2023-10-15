@@ -12,9 +12,22 @@ body {
     align-items: flex-start;
 }
 
+header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
 h1 {
     text-align: center;
     color: #333;
+    flex: 1;
+    /* Permite que el h1 ocupe el espacio restante */
+}
+
+#monedas {
+    margin-right: 10vh;
+    /* Espacio a la derecha del select */
 }
 
 button {
